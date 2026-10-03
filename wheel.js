@@ -2,7 +2,7 @@
   'use strict';
   const CENTER = 220;
   const RADIUS = 160;
-  const COLORS = ['#bc8b89','#b4a06e','#789aa9','#9587ad','#7c9e7a','#a1aa72','#b79a7e','#77a59c'];
+  const COLORS = ['#bd8f8e','#b8a06c','#83a1b0','#a194b5','#88a18a','#a6ac7d','#b69d87','#81a8a0'];
   const escape = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const round = value => Math.round(value * 1000) / 1000;
   function point(radius, degrees) {

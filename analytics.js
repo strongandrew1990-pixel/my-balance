@@ -40,10 +40,10 @@
     const growth = data.growth ? `<p class="analytics-score positive">+${data.growth.delta}</p>${sphereNames(data.growth.spheres)}` : `<p class="analytics-note">${!data.latest ? 'Сохраните первый обзор, чтобы увидеть показатели.' : !data.previous ? 'Рост появится после следующего замера.' : 'Положительного роста нет.'}</p>`;
     const dynamics = data.dynamics ? `<ul class="analytics-dynamics"><li><span class="positive">↑ <strong>${data.dynamics.improved}</strong></span> улучшилось</li><li><span>→ <strong>${data.dynamics.unchanged}</strong></span> без изменений</li><li><span class="negative">↓ <strong>${data.dynamics.declined}</strong></span> снизилось</li></ul>` : `<p class="analytics-note">${data.latest ? 'Динамика появится после следующего замера.' : 'Сохраните первый обзор, чтобы увидеть показатели.'}</p>`;
     return `<section class="analytics-grid" aria-label="Аналитика последнего обзора">
-      <article class="panel analytics-card"><h2>Требует внимания</h2>${attention}</article>
-      <article class="panel analytics-card"><h2>Главный рост</h2>${growth}</article>
-      <article class="panel analytics-card"><h2>Динамика</h2>${dynamics}</article>
-      <article class="panel analytics-card"><h2>Действия</h2><p class="analytics-actions" id="analytics-actions-value" role="status" aria-live="polite">${actionsText(data.latest)}</p><p class="analytics-note">${data.latest ? 'На период из последнего обзора' : 'Выберите 1–2 действия в первом обзоре.'}</p></article>
+      <article class="analytics-card attention-insight"><h3>Требует внимания</h3>${attention}</article>
+      <article class="analytics-card growth-insight"><h3>Главный рост</h3>${growth}</article>
+      <article class="analytics-card dynamics-insight"><h3>Динамика</h3>${dynamics}</article>
+      <article class="analytics-card actions-insight"><h3>Фокус периода</h3><p class="analytics-actions" id="analytics-actions-value" role="status" aria-live="polite">${actionsText(data.latest)}</p><p class="analytics-note">${data.latest ? 'Ваши действия до следующей сверки' : 'Выберите 1–2 действия в первом обзоре.'}</p></article>
     </section>`;
   }
 

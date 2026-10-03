@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Проверка дневника и адаптивности</title>
+<style>body{font-family:system-ui;padding:16px}pre{white-space:pre-wrap}iframe{display:block;height:600px;border:1px solid #ddd;margin:20px 0;max-width:100%}</style>
+<h1>Проверка дневника и адаптивности</h1><p>Обзоры изолированы в памяти. Личные записи не изменяются.</p>
+<pre id="results">Проверяем…</pre><div id="frames"></div>
+<script>
+(async function(){
+  const results=[],output=document.getElementById('results');
+  const check=(name,pass)=>results.push({name,pass:Boolean(pass)});
+  const settle=win=>new Promise(resolve=>win.setTimeout(resolve,30));
+  try {
+    for(const width of [320,390,768,1280]){
+      const frame=document.createElement('iframe');frame.style.width=width+'px';frame.title=`Дневник ${width}px`;
+      const loaded=new Promise(resolve=>frame.addEventListener('load',resolve,{once:true}));frame.src='fixture.html#home';document.getElementById('frames').append(frame);await loaded;
+      const win=frame.contentWindow,doc=frame.contentDocument,C=win.BalanceCore;
+      frame.style.width=(width+width-doc.documentElement.clientWidth)+'px';await settle(win);
+      check(`${width}px: точная ширина области содержимого`,doc.documentElement.clientWidth===width);
+      const reviews=['2026-09-01','2026-09-08','2026-09-15','2026-09-22'].map((date,i)=>C.createReview({date,scores:Object.fromEntries(C.SPHERES.map(s=>[s.id,5+i])),reasons:{health:'Личная заметка <без HTML>'},conclusion:`Запись ${i+1}`,actions:['Один важный шаг']},[],'2026-10-03'));
+      C.saveReviews(win.testStorage,reviews);const original=win.testStorage.raw;
+      win.dispatchEvent(new win.StorageEvent('storage',{key:C.STORAGE_KEY}));await settle(win);
+      const links=[...doc.querySelectorAll('.recent-history a[href^="#review/"]')];
+      check(`${width}px: превью открывает ровно 3 последних обзора`,links.length===3 && links.map(a=>a.getAttribute('href')).join(',')===[3,2,1].map(i=>'#review/'+reviews[i].id).join(','));
+      check(`${width}px: вся история доступна`,doc.querySelector('.recent-history a[href="#history"]')?.textContent.includes('Вся история'));
+      for(const route of ['home','history','review/'+reviews[3].id,'new']){
+        win.location.hash=route;await settle(win);
+        check(`${width}px ${route.split('/')[0]}: нет горизонтального скролла`,Boolean(doc.querySelector('main h1')) && doc.documentElement.scrollWidth<=doc.documentElement.clientWidth);
+        check(`${width}px ${route.split('/')[0]}: чтение не изменяет сохранённые данные`,win.testStorage.raw===original);
+        if(route==='new'){
+          const sizes=[...doc.querySelectorAll('.rating-option')].map(el=>el.getBoundingClientRect());
+          check(`${width}px: все 80 оценок удобны для нажатия`,sizes.length===80 && sizes.every(r=>r.width>=43.9 && r.height>=43.9));
+          check(`${width}px: кнопки сохранения доступны для пальца`,[...doc.querySelectorAll('.form-buttons button')].every(el=>el.getBoundingClientRect().height>=44));
+        }
+      }
+      win.location.hash='home';await settle(win);
+      const target=doc.querySelector(`[data-review-id="${reviews[3].id}"] input`);target.click();
+      const saved=C.loadReviews(win.testStorage);
+      check(`${width}px: отметка сохраняется только в последнем обзоре`,saved[0].actions[0].done && saved.slice(1).every(r=>!r.actions[0].done) && doc.getElementById('analytics-actions-value').textContent==='1 из 1 выполнено');
+      win.location.hash='history';await settle(win);win.location.hash='home';await settle(win);
+      check(`${width}px: сохранённая отметка видна после переходов`,doc.querySelector(`[data-review-id="${reviews[3].id}"] input`).checked);
+    }
+    output.textContent=results.map(r=>`${r.pass?'PASS':'FAIL'} ${r.name}`).join('\n')+`\n\n${results.filter(r=>r.pass).length}/${results.length}`;
+  }catch(error){output.textContent='FAIL: '+error.stack;}
+})();
+</script></html>

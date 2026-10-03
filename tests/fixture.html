@@ -11,5 +11,17 @@ window.confirm = () => true;
 <script src="../core.js" defer></script><script src="../wheel.js" defer></script><script src="../analytics.js" defer></script>
 <script src="../app.js" defer></script>
 </head>
-<body><header><nav><a href="#home" data-nav="home">Главная</a><a href="#history" data-nav="history">История</a><a href="#new">Новый обзор</a></nav></header><main id="content" tabindex="-1"></main><div id="notice" role="status" hidden></div></body>
+<body><header class="header">
+    <div class="header-inner">
+      <a class="brand" href="#home" aria-label="Мой баланс — главная">
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M5.6 18.4 18.4 5.6"/></svg></span>
+        <span>Мой баланс<span class="brand-caption">Личная сверка</span></span>
+      </a>
+      <nav class="nav" aria-label="Основная навигация">
+        <a href="#home" data-nav="home">Главная</a>
+        <a href="#history" data-nav="history">История</a>
+      </nav>
+      <a class="button button-primary header-button" href="#new"><span aria-hidden="true">＋</span> Новый обзор</a>
+    </div>
+  </header><main id="content" tabindex="-1"></main><div id="notice" role="status" hidden></div></body>
 </html>
