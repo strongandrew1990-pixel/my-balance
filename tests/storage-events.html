@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8"><title>Проверка состояния хранилища</title>
+<style>body{font-family:system-ui;padding:20px}iframe{width:100%;height:600px;border:1px solid #ddd}pre{white-space:pre-wrap}</style>
+<h1>Проверка состояния формы при изменении хранилища</h1>
+<p>Запуск через статический сервер. Использует отдельное хранилище в памяти; сохранённые обзоры не изменяет.</p>
+<pre id="results" role="status">Проверяем…</pre><iframe id="app" title="Тестовая форма"></iframe>
+<script>
+(async function () {
+  const output = document.getElementById('results'), frame = document.getElementById('app');
+  try {
+    const results = [];
+    const check = (name, condition) => results.push({name,pass:Boolean(condition)});
+    const loaded = new Promise(resolve => frame.addEventListener('load',resolve,{once:true}));
+    frame.src = 'fixture.html#new';
+    await loaded;
+    const win = frame.contentWindow, doc = frame.contentDocument;
+    const button = doc.querySelector('button[type="submit"]'), field = doc.getElementById('next-action-0');
+    check('Чистое хранилище разрешает сохранить', button && !button.disabled);
+    field.value = 'Черновик должен сохраниться'; field.dispatchEvent(new win.Event('input',{bubbles:true}));
+    win.testStorage.raw = '{';
+    win.dispatchEvent(new win.StorageEvent('storage',{key:'my-balance.reviews.v1'}));
+    check('Повреждение отключает сохранение', button.disabled);
+    check('Причина ошибки видна рядом с формой', doc.querySelector('.error-banner')?.textContent.includes('Сохранённые данные'));
+    check('Введённый черновик остаётся в форме', field.value === 'Черновик должен сохраниться');
+    win.testStorage.raw = JSON.stringify({version:1,reviews:[]});
+    win.dispatchEvent(new win.StorageEvent('storage',{key:'my-balance.reviews.v1'}));
+    check('Восстановление снова разрешает сохранить', !button.disabled);
+    check('Уведомление об ошибке исчезает', !doc.querySelector('.error-banner'));
+    check('Восстановление сохраняет черновик', field.value === 'Черновик должен сохраниться');
+    doc.getElementById('cancel-review').click();
+    output.textContent = results.map(r => `${r.pass?'PASS':'FAIL'} ${r.name}`).join('\n') + `\n\n${results.filter(r=>r.pass).length}/${results.length}`;
+  } catch (error) {output.textContent = 'FAIL: ' + error.message;}
+})();
+</script>
+</html>

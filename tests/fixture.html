@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Изолированная тестовая форма</title>
+<link rel="stylesheet" href="../styles.css">
+<script>
+window.testStorage = {raw:null,getItem(){return this.raw;},setItem(key,value){this.raw=value;}};
+Object.defineProperty(window,'localStorage',{value:window.testStorage});
+window.confirm = () => true;
+</script>
+<script src="../core.js" defer></script><script src="../wheel.js" defer></script><script src="../analytics.js" defer></script>
+<script src="../app.js" defer></script>
+</head>
+<body><header><nav><a href="#home" data-nav="home">Главная</a><a href="#history" data-nav="history">История</a><a href="#new">Новый обзор</a></nav></header><main id="content" tabindex="-1"></main><div id="notice" role="status" hidden></div></body>
+</html>

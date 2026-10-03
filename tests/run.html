@@ -1,0 +1,8 @@
+<!doctype html>
+<html lang="ru"><meta charset="utf-8"><title>Проверка «Моего баланса»</title>
+<script src="../core.js" defer></script><script src="core.test.js" defer></script>
+<script src="../wheel.js" defer></script><script src="wheel.test.js" defer></script>
+<script src="../analytics.js" defer></script><script src="analytics.test.js" defer></script>
+<body><h1>Проверка модели</h1><pre id="results"></pre>
+<script>window.addEventListener('DOMContentLoaded', () => { const results = [...runBalanceTests(), ...runWheelTests(), ...runAnalyticsTests()]; document.getElementById('results').textContent = results.map(t => `${t.pass ? 'PASS' : 'FAIL'} ${t.name}${t.error ? ': ' + t.error : ''}`).join('\n') + '\n\n' + results.filter(t => t.pass).length + '/' + results.length; });</script>
+</body></html>

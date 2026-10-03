@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Проверка аналитики в интерфейсе</title>
+<style>body{font-family:system-ui;padding:16px}iframe{display:block;max-width:100%;height:700px;border:1px solid #ddd;margin-top:20px}pre{white-space:pre-wrap}</style>
+<h1>Проверка аналитики и действий</h1>
+<p>Тестовые обзоры хранятся только в памяти. Личные записи не изменяются.</p>
+<pre id="results" role="status">Проверяем…</pre><div id="frames"></div>
+<script>
+(async function () {
+  const results = [], output = document.getElementById('results');
+  const check = (name, condition) => results.push({name,pass:Boolean(condition)});
+  // Таймер работает и для iframe вне видимой области; rAF там может быть приостановлен.
+  const paint = win => new Promise(resolve => win.setTimeout(resolve, 30));
+  async function fixture(width) {
+    const frame = document.createElement('iframe');frame.title = `Аналитика ${width} px`;frame.style.width = width + 'px';
+    const loaded = new Promise(resolve => frame.addEventListener('load',resolve,{once:true}));
+    frame.src = 'fixture.html#home';document.getElementById('frames').append(frame);await loaded;
+    return {win:frame.contentWindow,doc:frame.contentDocument};
+  }
+  function makeReview(win,date,values,actions=['Первое действие','Второе действие']) {
+    return win.BalanceCore.createReview({date,scores:Object.fromEntries(win.BalanceCore.SPHERES.map((s,i)=>[s.id,values[i]])),reasons:{},conclusion:'Тестовый обзор',actions},[],'2026-10-03');
+  }
+  function seed(win,reviews) {
+    win.BalanceCore.saveReviews(win.testStorage,reviews);
+    win.dispatchEvent(new win.StorageEvent('storage',{key:win.BalanceCore.STORAGE_KEY}));
+  }
+  try {
+    const {win,doc} = await fixture(1000);
+    check('Пустая главная показывает 4 показателя и 0 действий',doc.querySelectorAll('.analytics-card').length === 4 && doc.getElementById('analytics-actions-value').textContent === 'Действия не заданы');
+    const telegram = doc.querySelector('.feedback-panel a');
+    check('Telegram: точный текст, адрес, новая вкладка и безопасный rel',telegram?.getAttribute('href') === 'https://t.me/andreypaliy' && telegram.target === '_blank' && telegram.rel.includes('noopener') && telegram.rel.includes('noreferrer') && telegram.textContent === 'Написать мне в Telegram' && doc.querySelector('.feedback-panel p').textContent === 'Есть идеи, замечания или хочешь обсудить приложение?');
+    const old = makeReview(win,'2026-09-01',Array(8).fill(5),['Одно действие']);
+    seed(win,[old]);
+    check('Первый обзор: нет выдуманной динамики, одно действие',doc.querySelector('.analytics-grid').textContent.includes('Динамика появится после следующего замера.') && doc.getElementById('analytics-actions-value').textContent === '0 из 1 выполнено');
+    const latest = makeReview(win,'2026-09-20',[8,8,3,5,3,5,5,5]);seed(win,[old,latest]);
+    const cards = doc.querySelectorAll('.analytics-card');
+    check('Равный минимум: обе сферы и 3 / 10',cards[0].textContent.includes('Окружение / друзья / связи') && cards[0].textContent.includes('Здоровье') && cards[0].querySelector('.analytics-score').textContent === '3 / 10');
+    check('Равный рост: обе сферы и +3',cards[1].textContent.includes('Отношения / семья') && cards[1].textContent.includes('Финансы / инвестиции / деньги') && cards[1].querySelector('.analytics-score').textContent === '+3');
+    check('Динамика: 2 вверх, 4 без изменений, 2 вниз',[...cards[2].querySelectorAll('strong')].map(x=>x.textContent).join(',') === '2,4,2');
+    const latestAction = doc.querySelector(`[data-review-id="${latest.id}"] input`);latestAction.click();
+    check('Отметка сразу обновляет аналитику и сохраняется',doc.getElementById('analytics-actions-value').textContent === '1 из 2 выполнено' && win.BalanceCore.loadReviews(win.testStorage)[0].actions[0].done);
+    doc.querySelector(`[data-review-id="${old.id}"] input`).click();
+    check('Предыдущее действие не меняет показатель последнего обзора',doc.getElementById('analytics-actions-value').textContent === '1 из 2 выполнено');
+    const save = win.testStorage.setItem;win.testStorage.setItem = () => {throw new Error('Quota');};latestAction.click();win.testStorage.setItem = save;
+    check('Ошибка сохранения не меняет показатель и возвращает отметку',latestAction.checked && doc.getElementById('analytics-actions-value').textContent === '1 из 2 выполнено');
+    seed(win,[old,makeReview(win,'2026-09-20',Array(8).fill(4))]);
+    check('Без роста показано понятное сообщение',doc.querySelectorAll('.analytics-card')[1].textContent.includes('Положительного роста нет.'));
+    win.location.hash='new';await paint(win);
+    check('Форма нового обзора открывается без аналитики',Boolean(doc.getElementById('review-form')) && !doc.querySelector('.analytics-grid'));
+    for (const sphere of win.BalanceCore.SPHERES) doc.querySelector(`input[name="score-${sphere.id}"][value="6"]`).click();
+    const actionField = doc.getElementById('next-action-0');actionField.value='Новый шаг';actionField.dispatchEvent(new win.Event('input',{bubbles:true}));
+    doc.querySelector('button[type="submit"]').click();await paint(win);
+    check('Создание обзора сохраняет запись и открывает просмотр',win.BalanceCore.loadReviews(win.testStorage).length === 3 && win.location.hash.startsWith('#review/') && Boolean(doc.querySelector('.review-comparison')));
+    win.location.hash='history';await paint(win);
+    check('История показывает все три обзора',doc.querySelectorAll('.history-card').length === 3);
+    for (const width of [320,390,768]) {
+      const mobile = await fixture(width);const prior=makeReview(mobile.win,'2026-09-01',Array(8).fill(3));const current=makeReview(mobile.win,'2026-09-20',Array(8).fill(6));seed(mobile.win,[prior,current]);await paint(mobile.win);
+      check(`${width}px: все 4 показателя и нет горизонтального переполнения`,mobile.doc.querySelectorAll('.analytics-card').length === 4 && mobile.doc.documentElement.scrollWidth <= mobile.doc.documentElement.clientWidth);
+      for(const details of mobile.doc.querySelectorAll('.analytics-ties'))details.open=true;await paint(mobile.win);
+      check(`${width}px: раскрытые списки всех 8 сфер помещаются`,mobile.doc.querySelectorAll('.analytics-names li').length === 16 && mobile.doc.documentElement.scrollWidth <= mobile.doc.documentElement.clientWidth);
+    }
+    output.textContent = results.map(r=>`${r.pass?'PASS':'FAIL'} ${r.name}`).join('\n') + `\n\n${results.filter(r=>r.pass).length}/${results.length}`;
+  } catch(error) {output.textContent = 'FAIL: ' + error.stack;}
+})();
+</script>
+</html>

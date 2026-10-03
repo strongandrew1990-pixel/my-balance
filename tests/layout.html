@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ru">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Проверка адаптивности</title>
+<style>body{font-family:system-ui;padding:20px}iframe{height:500px;display:block;border:1px solid #ddd}section{margin:20px 0}pre{white-space:pre-wrap}</style>
+<h1>Проверка адаптивности «Моего баланса»</h1>
+<p>Открывает главную, историю и форму в ширинах 320, 390 и 768 px. Использует существующие обзоры в этом браузере. Ничего не записывает в хранилище.</p>
+<pre id="result" role="status">Проверяем…</pre><div id="frames"></div>
+<script>
+  const results = [];
+  const variants = ['home','history','new'].flatMap(route => [320,390,768].map(width => ({route,width})));
+  for (const {route,width} of variants) {
+    const section = document.createElement('section');
+    const heading = document.createElement('h2'); heading.textContent = `${route} · ${width} px`;
+    const frame = document.createElement('iframe'); frame.style.width = width + 'px'; frame.title = heading.textContent;
+    frame.addEventListener('load', () => {
+      frame.contentWindow.requestAnimationFrame(() => frame.contentWindow.requestAnimationFrame(() => {
+        const doc = frame.contentDocument, root = doc.documentElement;
+        const pass = Boolean(doc.querySelector('main h1')) && root.scrollWidth <= root.clientWidth;
+        results.push({route,width,pass,viewport:root.clientWidth,content:root.scrollWidth});
+        document.getElementById('result').textContent = results.map(r => `${r.pass?'PASS':'FAIL'} ${r.route} ${r.width}px: viewport=${r.viewport}, content=${r.content}`).join('\n') + `\n\n${results.filter(r=>r.pass).length}/${variants.length}`;
+      }));
+    });
+    frame.src = '../index.html#' + route;
+    section.append(heading,frame); document.getElementById('frames').append(section);
+  }
+</script>
+</html>
